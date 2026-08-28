@@ -1250,19 +1250,23 @@ demoWavButtons.forEach(btn => {
         const soundClass = btn.getAttribute('data-sound');
 
         try {
-            // Fetch WAV file blob from static mounted /data endpoint
-            let res = await fetch(`/data/processed/${soundClass}/${soundClass}_esc50_000.wav`);
+            // Fetch authentic real WAV sound clip
+            let res = await fetch(`/demo_sounds/${soundClass}.wav`);
             if (!res.ok) {
-                res = await fetch(`/data/synthetic/${soundClass}/${soundClass}_000.wav`);
-                if (!res.ok) throw new Error("Could not find WAV file in processed or synthetic folders.");
+                res = await fetch(`/data/processed/${soundClass}/${soundClass}_esc50_000.wav`);
+                if (!res.ok) {
+                    res = await fetch(`/data/synthetic/${soundClass}/${soundClass}_000.wav`);
+                    if (!res.ok) throw new Error("Could not find WAV sound file.");
+                }
             }
 
             const wavBlob = await res.blob();
 
-            // Play audio natively in browser so the user can hear the demo
+            // Play real audio loudly and clearly in browser speakers
             const audioUrl = URL.createObjectURL(wavBlob);
             const audio = new Audio(audioUrl);
-            audio.play().catch(e => console.warn("Audio playback failed (browser auto-play policy):", e));
+            audio.volume = 1.0;
+            audio.play().catch(e => console.warn("Audio playback note:", e));
 
             const mediaPlayback = document.getElementById('ctx-media').checked;
             const suddenMotion = document.getElementById('ctx-motion').checked;
