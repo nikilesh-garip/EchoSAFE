@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Echo — Safety monitoring dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+<div class="login-overlay" id="login-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <div class="login-card">
+    <div class="login-mark"><i></i></div>
+    <h1 id="login-title">ECHO</h1>
+    <p class="login-tagline">Acoustic hazard detection that calls the people who can help.</p>
+    <form id="login-form">
+      <label for="login-identifier">Email or phone</label>
+      <input type="text" id="login-identifier" placeholder="you@example.com" required autocomplete="username">
+      <label for="login-name">Display name (optional)</label>
+      <input type="text" id="login-name" placeholder="Used in the alert your contacts receive" autocomplete="name">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Any password" required autocomplete="current-password">
+      <button type="submit" class="login-submit">Enter Echo</button>
+    </form>
+    <div class="login-note">Demo sign-in: any credentials are accepted and nothing is sent anywhere. This creates a local profile so your contacts, history, and alerts stay together on this device.</div>
+  </div>
+</div>
+
+<div class="app-shell" id="app-shell" hidden style="display:none">
+  <aside class="sidebar" aria-label="Primary navigation">
+    <a class="brand" href="#home" aria-label="Echo home"><span class="brand-mark"><i></i></span><span>ECHO</span></a>
+    <p class="brand-copy">Safety monitoring<br>and emergency guidance</p>
+    <nav class="nav-bar">
+      <button class="nav-item active" data-screen="home"><span class="nav-icon">⌂</span><span>Overview</span></button>
+      <button class="nav-item" data-screen="monitor"><span class="nav-icon">⌁</span><span>Live monitor</span></button>
+      <button class="nav-item" data-screen="history"><span class="nav-icon">◷</span><span>Event history</span></button>
+      <button class="nav-item" data-screen="contacts"><span class="nav-icon">◎</span><span>Trusted contacts</span></button>
+      <button class="nav-item" data-screen="demo"><span class="nav-icon">▷</span><span>Demo lab</span></button>
+      <button class="nav-item" data-screen="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="session-chip"><span id="session-name">Signed in</span><button id="sign-out-btn" title="Sign out">Sign out</button></div>
+      <div class="channel-mini" id="channel-mini" title="Emergency channel status">
+        <span class="dot" id="channel-mini-telegram-dot"></span>Telegram
+        <span class="dot" id="channel-mini-voice-dot"></span>Voice call
+      </div>
+      Prototype build<br><span>Audio is not retained</span>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <div><p class="eyebrow">ECHO SAFETY SYSTEM</p><h1 id="topbar-title">Overview</h1></div>
+      <div class="system-state"><span class="signal-dot red" id="mic-status-indicator"></span><span id="mic-status-text">Idle</span><span class="topbar-time" id="status-time">09:41</span></div>
+    </header>
+
+    <section class="screen-content" id="screen-container">
+
+      <section class="screen active" id="screen-home">
+        <div class="overview-hero">
+          <div>
+            <p class="eyebrow">ROOM SOUND MONITORING</p>
+            <h2>Stay aware without<br>recording your room.</h2>
+            <p class="hero-copy">Echo checks live audio in short windows, confirms likely hazards, and&nbsp;-&nbsp;above a risk threshold&nbsp;-&nbsp;calls and messages the people you trust with your location and the sound that triggered it.</p>
+          </div>
+          <div class="monitor-switch-card">
+            <div class="card-header"><span>System protection</span><span class="status-badge" id="system-status-badge">Off</span></div>
+            <button class="toggle-btn" id="start-monitoring-btn">Start monitoring</button>
+            <p class="button-note">Your browser will ask for microphone access.</p>
+          </div>
+        </div>
+        <div class="overview-grid">
+          <section class="panel context-toggles">
+            <div class="panel-heading"><div><p class="eyebrow">CONTEXT</p><h3>Signals that shape risk</h3></div><span class="muted">Manual demo inputs</span></div>
+            <label class="toggle-row" for="ctx-media"><span><strong>Media playback</strong><small>Action film, game, or television audio</small></span><input type="checkbox" id="ctx-media"></label>
+            <label class="toggle-row" for="ctx-motion"><span><strong>Sudden motion</strong><small>Running or abrupt device movement</small></span><input type="checkbox" id="ctx-motion"></label>
+          </section>
+          <section class="panel last-event-card">
+            <p class="eyebrow">LATEST CONFIRMED EVENT</p><h3>Session activity</h3>
+            <div id="last-event-details"><span class="muted">No hazard events logged in this session.</span></div>
+          </section>
+        </div>
+        <section class="panel readiness-card" id="readiness-card" hidden>
+          <div class="panel-heading"><div><p class="eyebrow">IF SOMETHING HAPPENED RIGHT NOW</p><h3>Who would be told</h3></div></div>
+          <div id="readiness-body"></div>
+        </section>
+        <p class="prototype-note">Prototype: acoustic detections provide guidance only. In an emergency, contact local services directly.</p>
+      </section>
+
+      <section class="screen" id="screen-monitor">
+        <div class="screen-heading">
+          <div><p class="eyebrow">LIVE INPUT</p><h2>Acoustic monitor</h2></div>
+          <div class="pulse-wrapper" id="pulse-wrapper"><div class="pulse-ring"></div><div class="pulse-center"></div></div>
+        </div>
+        <section class="panel spectrogram-visualizer">
+          <canvas id="waveform-canvas"></canvas>
+          <span class="viz-label">16 kHz rolling audio buffer · audio is discarded after classification</span>
+        </section>
+        <div class="monitor-metrics">
+          <div class="metric-box" id="mon-class-box"><span class="label">Current class</span><span class="value" id="mon-class">NORMAL</span></div>
+          <div class="metric-box" id="mon-risk-box"><span class="label">Risk score</span><span class="value" id="mon-risk">0</span><span class="risk-chip" id="mon-risk-chip">NORMAL</span></div>
+        </div>
+        <section class="panel two-pass-results">
+          <div class="panel-heading"><div><p class="eyebrow">VERIFICATION</p><h3>Two-pass inference</h3></div></div>
+          <div class="metric-row"><span>Pass 1 · primary sample (2 seconds)</span><div class="bar-track"><div class="bar-fill" id="mon-p1-bar"></div></div><strong id="mon-p1-val">0.0%</strong></div>
+          <div class="metric-row"><span>Pass 2 · confirmation sample (5 seconds)</span><div class="bar-track"><div class="bar-fill" id="mon-p2-bar"></div></div><strong id="mon-p2-val">0.0%</strong></div>
+        </section>
+      </section>
+
+      <section class="screen" id="screen-history">
+        <div class="screen-heading"><div><p class="eyebrow">PRIVATE ACTIVITY LOG</p><h2>Event history</h2></div><button class="clear-btn" id="clear-history-btn">Clear history</button></div>
+        <p class="privacy-note">Metadata only: raw audio is removed immediately after analysis.</p>
+        <div class="history-list" id="history-items-container"><div class="empty-state">No confirmed events recorded.</div></div>
+      </section>
+
+      <section class="screen" id="screen-contacts">
+        <div class="screen-heading"><div><p class="eyebrow">PERSONAL SAFETY NETWORK</p><h2>Trusted contacts</h2></div></div>
+        <p class="section-note">A verified high-risk detection calls <strong>and</strong> Telegram-messages every contact below (unless you turn a channel off for them), with the evidence clip and your location.</p>
+        <div class="contacts-list" id="contacts-container"></div>
+
+        <section class="panel add-contact-form">
+          <h3>Add a contact</h3>
+          <div class="form-grid">
+            <input type="text" id="contact-name" placeholder="Full name">
+            <input type="text" id="contact-phone" placeholder="Phone number (for the call)">
+            <input type="text" id="contact-relation" placeholder="Relationship">
+          </div>
+          <div class="form-grid form-grid-tg">
+            <div class="tg-chat-row">
+              <input type="text" id="contact-telegram" placeholder="Telegram chat id (optional)">
+              <button type="button" class="ghost-btn" id="find-chats-btn">Find chats that started my bot</button>
+            </div>
+            <select id="contact-priority" title="Escalation order">
+              <option value="10">Call first (priority 10)</option>
+              <option value="50">Call early (priority 50)</option>
+              <option value="100" selected>Normal priority (100)</option>
+              <option value="200">Call last (priority 200)</option>
+            </select>
+          </div>
+          <div id="chat-picker" class="chat-picker" hidden></div>
+          <div class="channel-check-row">
+            <label class="mini-toggle"><input type="checkbox" id="contact-notify-call" checked> Automated voice call</label>
+            <label class="mini-toggle"><input type="checkbox" id="contact-notify-telegram" checked> Telegram message</label>
+          </div>
+          <button class="add-btn" id="save-contact-btn">Save contact</button>
+        </section>
+
+        <section class="panel test-alert-card">
+          <div class="panel-heading"><div><p class="eyebrow">REHEARSE IT</p><h3>Send a real test alert</h3></div></div>
+          <p class="muted">Calls and Telegram-messages every contact above right now, clearly labelled <strong>TEST — no real emergency</strong>. This is the fastest way to confirm your Twilio/Telegram setup actually works.</p>
+          <button class="test-alert-btn" id="send-test-alert-btn">Send test alert to my contacts</button>
+          <div id="test-alert-result"></div>
+        </section>
+      </section>
+
+      <section class="screen" id="screen-settings">
+        <div class="screen-heading"><div><p class="eyebrow">PREFERENCES</p><h2>Settings</h2></div></div>
+        <div class="settings-layout">
+          <section class="panel settings-group">
+            <p class="eyebrow">DETECTION</p><h3>Acoustic sensitivity</h3>
+            <div class="slider-row"><input type="range" id="sensitivity-slider" min="1" max="9" value="5"><span id="sensitivity-val">Medium (0.50)</span></div>
+          </section>
+          <section class="panel settings-group">
+            <p class="eyebrow">PERMISSIONS</p><h3>Browser access</h3>
+            <div class="info-row"><span>Microphone</span><strong id="mic-permission-status">Not requested</strong></div>
+            <div class="info-row"><span>Location services</span><strong id="location-permission-status">Requested for alerts</strong></div>
+          </section>
+          <section class="panel settings-group">
+            <p class="eyebrow">EMERGENCY CHANNELS</p><h3>Escalation setup</h3>
+            <div class="info-row"><span>Telegram</span><strong><span class="chan-pill" id="settings-telegram-pill">checking…</span></strong></div>
+            <div class="info-row"><span>Automated voice call</span><strong><span class="chan-pill" id="settings-voice-pill">checking…</span></strong></div>
+            <div class="info-row"><span>Escalates on</span><strong id="settings-escalation-classes">—</strong></div>
+            <div class="info-row"><span>Cancel window</span><strong id="settings-cancel-window">—</strong></div>
+            <div class="info-row"><span>Minimum risk score</span><strong id="settings-min-risk">—</strong></div>
+            <p class="setup-hint">Not configured yet? Copy <code>backend/.env.example</code> to <code>backend/.env</code>, fill in the keys, restart the backend.</p>
+          </section>
+          <section class="panel settings-group">
+            <p class="eyebrow">SYSTEM</p><h3>Model information</h3>
+            <div class="info-row"><span>Architecture</span><strong>YAMNet transfer-learning head (server)</strong></div>
+            <div class="info-row"><span>Browser inference</span><strong>Server API</strong></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-demo">
+        <div class="screen-heading"><div><p class="eyebrow">PANEL PRESENTATION</p><h2>Demo lab</h2></div></div>
+        <section class="panel profile-switch-card">
+          <div class="card-header"><span>Classifier head</span><span class="status-badge" id="profile-badge">Production</span></div>
+          <div class="profile-toggle">
+            <button class="profile-btn active" id="profile-real-btn" data-profile="real">Production<small>Real hazard audio only</small></button>
+            <button class="profile-btn" id="profile-demo-btn" data-profile="demo">Demo<small>Adds firecracker &rarr; gunshot</small></button>
+          </div>
+          <p class="profile-note" id="profile-note" hidden>Demo head active: a Diwali firecracker is detected as its own class and aliased to <strong>gunshot</strong> so the full alert path (risk score, countdown, call, Telegram) runs on a sound that is safe to produce. Every alert this produces is stamped DEMO and keeps the real <code>firecracker</code> class in the record. <strong>This applies to the live microphone below too</strong> &mdash; while Demo is selected, blasting a cracker near the mic runs through this head, not production.</p>
+        </section>
+        <p class="demo-explanation">Inject a prepared clip directly into the detection pipeline or use live microphone monitoring. The classifier head above applies to both.</p>
+        <div class="demo-layout">
+          <section class="panel demo-card">
+            <p class="eyebrow">LIVE INPUT</p><h3>Microphone demo</h3>
+            <p>Speak, shout, blast a cracker, or play a sound near the device.</p>
+            <button class="demo-trigger-btn" id="demo-mic-btn">Start live demo listening</button>
+          </section>
+          <section class="panel demo-card">
+            <p class="eyebrow">DIRECT INJECTION</p><h3>Prepared sound samples</h3>
+            <p>Bypasses room acoustics while keeping the real model and risk pipeline.</p>
+            <div class="wav-grid" id="wav-grid">
+              <button class="wav-btn" data-sound="firecracker" data-demo-only="true" hidden><span class="wav-icon">✺</span>Firecracker (Diwali)</button>
+              <button class="wav-btn" data-sound="gunshot"><span class="wav-icon">✹</span>Gunshot</button>
+              <button class="wav-btn" data-sound="scream"><span class="wav-icon">◈</span>Distress scream</button>
+              <button class="wav-btn" data-sound="glass_breaking"><span class="wav-icon">◇</span>Glass break</button>
+              <button class="wav-btn" data-sound="explosion"><span class="wav-icon">✷</span>Explosion</button>
+              <button class="wav-btn" data-sound="fire_alarm"><span class="wav-icon">▲</span>Fire alarm</button>
+              <button class="wav-btn" data-sound="siren"><span class="wav-icon">◉</span>Siren</button>
+              <button class="wav-btn" data-sound="shouting"><span class="wav-icon">❢</span>Shouting</button>
+              <button class="wav-btn" data-sound="normal"><span class="wav-icon">○</span>Background</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+    </section>
+  </main>
+</div>
+
+<div class="alert-overlay" id="alert-modal" role="dialog" aria-modal="true" aria-labelledby="alert-title">
+  <section class="alert-box" id="alert-box">
+    <header class="alert-header" id="alert-header">
+      <div class="danger-badge" id="alert-badge">CRITICAL ALERT</div>
+      <h2 id="alert-title">Possible threat</h2>
+      <p class="alert-raw-class" id="alert-raw-class" hidden></p>
+      <div class="alert-risk-meter">
+        <svg class="risk-ring" viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+          <circle class="risk-ring-track" cx="32" cy="32" r="27"></circle>
+          <circle class="risk-ring-fill" id="alert-risk-ring-fill" cx="32" cy="32" r="27"></circle>
+        </svg>
+        <div><strong id="alert-risk-score">90</strong><span id="alert-risk-lvl">(HIGH RISK)</span></div>
+      </div>
+    </header>
+    <div class="alert-body">
+      <section class="alert-section" id="escalation-section">
+        <h4>Emergency contact escalation</h4>
+        <div id="escalation-pending" hidden>
+          <div class="countdown-ring-wrap">
+            <svg class="countdown-ring" viewBox="0 0 120 120" width="96" height="96">
+              <circle class="countdown-ring-track" cx="60" cy="60" r="52"></circle>
+              <circle class="countdown-ring-fill" id="escalation-ring-fill" cx="60" cy="60" r="52"></circle>
+            </svg>
+            <div class="countdown-ring-number" id="escalation-countdown">12</div>
+          </div>
+          <p class="escalation-copy">Calling and Telegram-messaging your emergency contacts in <strong id="escalation-countdown-inline">12</strong>s, with the audio clip and your location.</p>
+          <button class="action-btn safe-btn" id="escalation-cancel-btn">Cancel — I'm safe</button>
+        </div>
+        <div id="escalation-result" hidden>
+          <p class="escalation-location" id="escalation-location" hidden></p>
+          <ul id="escalation-attempts-list" class="escalation-attempts"></ul>
+        </div>
+        <div id="escalation-none" hidden><p class="escalation-copy escalation-warn"></p></div>
+      </section>
+      <section class="alert-section">
+        <h4>Inference metrics</h4>
+        <div class="metrics-grid">
+          <div>Primary <strong id="alert-p1">95%</strong></div>
+          <div>Verification <strong id="alert-p2">88%</strong></div>
+        </div>
+      </section>
+      <section class="alert-section">
+        <h4>Recommended actions</h4>
+        <ul id="alert-guidance-list"><li>Cover immediately.</li></ul>
+      </section>
+      <section class="alert-section">
+        <h4>Nearby emergency facilities</h4>
+        <div class="places-list" id="alert-places-container"></div>
+      </section>
+    </div>
+    <footer class="alert-footer">
+      <button class="action-btn safe-btn" id="download-report-btn">Download incident report</button>
+      <a class="action-btn call-btn" id="call-services-btn" href="tel:112">Call emergency services</a>
+      <button class="action-btn safe-btn" id="dismiss-alert-btn">I'm safe</button>
+    </footer>
+  </section>
+</div>
+
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+<script src="app.js?v=5"></script>
+</body>
+</html>

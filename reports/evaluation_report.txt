@@ -1,0 +1,37 @@
+Echo YAMNet Transfer-Learning Head Evaluation Report (real)
+=================================
+
+Accuracy: 0.9510
+Precision: 0.9640
+Recall: 0.9450
+F1 Score: 0.9508
+
+Class-wise Metrics:
+Normal: Precision=0.9320, Recall=0.9600, FPR=0.0283, FNR=0.0400
+Gunshot: Precision=1.0000, Recall=1.0000, FPR=0.0000, FNR=0.0000
+Explosion: Precision=0.8571, Recall=0.9333, FPR=0.0232, FNR=0.0667
+Scream: Precision=1.0000, Recall=1.0000, FPR=0.0000, FNR=0.0000
+Glass Breaking: Precision=1.0000, Recall=0.7037, FPR=0.0000, FNR=0.2963
+Fire Alarm: Precision=0.9231, Recall=1.0000, FPR=0.0096, FNR=0.0000
+Siren: Precision=1.0000, Recall=1.0000, FPR=0.0000, FNR=0.0000
+Shouting: Precision=1.0000, Recall=0.9630, FPR=0.0000, FNR=0.0370
+
+Confusion Matrix:
+[[96  0  1  0  0  3  0  0]
+ [ 0 16  0  0  0  0  0  0]
+ [ 3  0 42  0  0  0  0  0]
+ [ 0  0  0 24  0  0  0  0]
+ [ 2  0  6  0 19  0  0  0]
+ [ 0  0  0  0  0 36  0  0]
+ [ 0  0  0  0  0  0 45  0]
+ [ 2  0  0  0  0  0  0 52]]
+
+Real-world release gates:
+Ready: False
+BLOCKER: Evaluation data is not ready for a real-world model claim.
+BLOCKER: explosion precision must be at least 0.95.
+BLOCKER: fire_alarm precision must be at least 0.95.
+BLOCKER: normal precision must be at least 0.95.
+BLOCKER: explosion recall must be at least 0.98.
+BLOCKER: Normal-audio false-positive rate must be at most 1.00%.
+BLOCKER: Playback false-positive rate must be at most 3.00%.

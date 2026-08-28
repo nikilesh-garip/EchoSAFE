@@ -1,0 +1,26 @@
+name: echo_app
+description: "Echo - AI-Based Hazardous Sound Detection & Smart Emergency Guidance mobile app."
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  http: ^1.1.0                # For communication with the FastAPI backend
+  geolocator: ^10.1.0         # For GPS coordinates extraction
+  sensors_plus: ^5.0.1        # For context-aware sudden motion/running detection
+  record: ^5.0.4              # For session-based microphone rolling buffers
+  path_provider: ^2.1.1       # For saving temporary audio chunks locally
+  shared_preferences: ^2.2.2  # For storing emergency contacts locally
+  url_launcher: ^6.2.5        # For the user-initiated tel:112 emergency handoff
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true

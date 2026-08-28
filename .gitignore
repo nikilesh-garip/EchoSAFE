@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Databases
+*.db
+backend/echo_backend.db
+
+# Backend Temp files
+backend/temp/
+
+# PyTorch checkpoints and datasets
+model/checkpoints/
+model/esc50_temp.zip
+model/esc50_temp_dir/
+model/*.tar.gz
+model/urbansound8k_temp_dir/
+model/data/
+
+# Flutter specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.so
+*.ipa
+*.apk
+*.cab
+*.exe
+*.msi
+*.zip
+
+# IDEs & System files
+.vscode/
+.idea/
+.gemini/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db
+
+# Cloned repositories for reference
+cloned_repos/
+
+# Training run traces
+reports/*.json
+
+
+
+# Local run logs
+server.log
+server.err.log
+
+# Backend secrets / runtime state
+backend/.env
+backend/evidence/
+
+# Demo model artifacts
+model/data/raw/firecrackers/
+.gstack/

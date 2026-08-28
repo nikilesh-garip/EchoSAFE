@@ -1,0 +1,65 @@
+{
+  "gunshot": {
+    "title": "Possible Gunshot Detected",
+    "instructions": [
+      "Seek substantial cover immediately (concrete walls, thick structures).",
+      "Stay low to the ground and avoid exposed windows or doorways.",
+      "Silence your phone and call emergency services when absolutely safe to do so."
+    ]
+  },
+  "explosion": {
+    "title": "Possible Explosion Detected",
+    "instructions": [
+      "Evacuate the structure or immediate area immediately.",
+      "Stay clear of windows, glass facades, or heavy hanging structures.",
+      "Watch for smoke, fires, or secondary debris hazards during evacuation."
+    ]
+  },
+  "scream": {
+    "title": "Distress Scream Detected",
+    "instructions": [
+      "Prioritize your personal safety first; do not rush blindly into danger.",
+      "Move toward a well-lit public area or secure room if you feel threatened.",
+      "Call emergency services to report distress coordinate sounds."
+    ]
+  },
+  "glass_breaking": {
+    "title": "Glass Breakage Detected",
+    "instructions": [
+      "Be alert for potential structural hazards, accidents, or intrusions.",
+      "Move away from loose shards and scan surroundings carefully.",
+      "Check points of entry if at home, keeping a safe distance."
+    ]
+  },
+  "fire_alarm": {
+    "title": "Fire Alarm/Smoke Alarm Detected",
+    "instructions": [
+      "Evacuate the building immediately using the nearest exit stairwell.",
+      "Do not use elevators under any circumstances.",
+      "Check doors for heat with the back of your hand before opening."
+    ]
+  },
+  "siren": {
+    "title": "Emergency Siren Detected",
+    "instructions": [
+      "Remain vigilant and clear the roadway if you are driving.",
+      "Look out for approaching emergency response vehicles.",
+      "Monitor local news channels or weather radios for official alerts."
+    ]
+  },
+  "shouting": {
+    "title": "Aggressive Shouting Detected",
+    "instructions": [
+      "Do not engage or make eye contact with aggressive individuals.",
+      "Calmly withdraw from the immediate area to de-escalate tension.",
+      "Head to a nearby crowded, safe facility (e.g. store, station)."
+    ]
+  },
+  "normal": {
+    "title": "Normal Environment",
+    "instructions": [
+      "No high-risk acoustic anomalies detected.",
+      "Echo is monitoring your environment safely in the background."
+    ]
+  }
+}
