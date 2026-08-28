@@ -212,8 +212,7 @@ const startBtn = document.getElementById('start-monitoring-btn');
 const systemStatusBadge = document.getElementById('system-status-badge');
 const micStatusIndicator = document.getElementById('mic-status-indicator');
 const micStatusText = document.getElementById('mic-status-text');
-const canvas = document.getElementById('waveform-canvas');
-const canvasCtx = canvas.getContext('2d');
+const threeCanvasContainer = document.getElementById('three-canvas');
 const monClassBox = document.getElementById('mon-class-box');
 const monRiskBox = document.getElementById('mon-risk-box');
 const monClass = document.getElementById('mon-class');
@@ -610,38 +609,95 @@ function stopMonitoring() {
     micStatusText.innerText = "Idle";
 
     // Clear Visualizer Canvas
-    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+    if (typeof threeScene !== 'undefined' && threeScene) {
+        while(threeScene.children.length > 0){ 
+            threeScene.remove(threeScene.children[0]); 
+        }
+        if (typeof threeRenderer !== 'undefined') {
+            threeRenderer.clear();
+        }
+    }
 }
 
+let threeScene, threeCamera, threeRenderer, threeMeshes = [];
 // Web Audio API Visualizer Setup
 function setupVisualizer() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioContext.createMediaStreamSource(mediaStream);
     const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 64; // Smaller FFT size for thicker 3D bars
     source.connect(analyser);
 
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
+
+    const container = document.getElementById('three-canvas');
+    const width = container.clientWidth || (window.innerWidth > 900 ? window.innerWidth - 300 : window.innerWidth - 48);
+    const height = container.clientHeight || 260;
+
+    if (!threeRenderer) {
+        threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        threeRenderer.setSize(width, height);
+        threeRenderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(threeRenderer.domElement);
+    }
+    
+    threeScene = new THREE.Scene();
+    threeCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    threeCamera.position.set(0, 30, 40);
+    threeCamera.lookAt(0, 0, 0);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    threeScene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(20, 40, 20);
+    threeScene.add(dirLight);
+
+    threeMeshes = [];
+    const barWidth = 1.2;
+    const spacing = 1.8;
+    const totalWidth = bufferLength * spacing;
+    const startX = -totalWidth / 2;
+
+    const material = new THREE.MeshPhongMaterial({ color: 0xFFD700, shininess: 80 });
+    for (let i = 0; i < bufferLength; i++) {
+        const geometry = new THREE.BoxGeometry(barWidth, 1, barWidth);
+        const mesh = new THREE.Mesh(geometry, material.clone());
+        mesh.position.set(startX + i * spacing, 0.5, 0);
+        threeScene.add(mesh);
+        threeMeshes.push(mesh);
+    }
+
+    const grid = new THREE.GridHelper(totalWidth + 10, 20, 0xe5e7eb, 0xe5e7eb);
+    grid.position.y = 0;
+    threeScene.add(grid);
 
     function draw() {
         if (!isMonitoring) return;
         animationFrameId = requestAnimationFrame(draw);
 
         analyser.getByteFrequencyData(dataArray);
-        canvasCtx.fillStyle = '#020617';
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const barWidth = (canvas.width / bufferLength) * 1.5;
-        let barHeight;
-        let x = 0;
+        // Gentle camera rotation
+        const time = Date.now() * 0.0003;
+        threeCamera.position.x = Math.sin(time) * 45;
+        threeCamera.position.z = Math.cos(time) * 45;
+        threeCamera.lookAt(0, 0, 0);
 
         for (let i = 0; i < bufferLength; i++) {
-            barHeight = dataArray[i] / 2;
-            canvasCtx.fillStyle = `rgb(13, ${148 + barHeight}, ${136 - barHeight})`;
-            canvasCtx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
-            x += barWidth;
+            let val = dataArray[i] / 5.0; // Scale down
+            if (val < 0.1) val = 0.1;
+            
+            // Smoothly interpolate current scale to new scale
+            threeMeshes[i].scale.y += (val - threeMeshes[i].scale.y) * 0.3;
+            threeMeshes[i].position.y = threeMeshes[i].scale.y / 2;
+            
+            // Color shifts based on intensity (Yellow to Red/Orange)
+            const intensity = val / 25;
+            threeMeshes[i].material.color.setHSL(Math.max(0, 0.14 - intensity * 0.14), 1, 0.55);
         }
+
+        threeRenderer.render(threeScene, threeCamera);
     }
 
     draw();

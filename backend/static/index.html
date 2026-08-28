@@ -6,8 +6,9 @@
 <title>Echo — Safety monitoring dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=5">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=6">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -96,8 +97,8 @@
           <div class="pulse-wrapper" id="pulse-wrapper"><div class="pulse-ring"></div><div class="pulse-center"></div></div>
         </div>
         <section class="panel spectrogram-visualizer">
-          <canvas id="waveform-canvas"></canvas>
-          <span class="viz-label">16 kHz rolling audio buffer · audio is discarded after classification</span>
+          <div id="three-canvas"></div>
+          <span class="viz-label">3D Real-time 16kHz rolling audio analysis</span>
         </section>
         <div class="monitor-metrics">
           <div class="metric-box" id="mon-class-box"><span class="label">Current class</span><span class="value" id="mon-class">NORMAL</span></div>
@@ -284,6 +285,6 @@
 
 <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
