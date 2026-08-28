@@ -1,31 +1,6 @@
 """Builds the demo-profile dataset: production classes + firecracker.
 
     python prepare_demo_dataset.py
-
-What it does
-------------
-1. Reuses the production manifest rows verbatim (same audio files, same
-   source-disjoint splits). No audio is copied or duplicated -- the demo
-   manifest simply points at ``data/processed/`` for the eight production
-   classes, so the two heads see identical data for everything except the
-   new class.
-2. Ingests firecracker audio into ``data/processed_demo/firecracker/`` from,
-   in priority order:
-      a. ``data/raw/firecrackers/`` -- real recordings you drop in yourself
-         (any layout, any common audio format). This is what you want for the
-         demo: record 20-40 clips of the actual crackers you will light on
-         stage, on the phone you will present with.
-      b. ESC-50's ``fireworks`` category, if the ESC-50 zip was extracted by
-         prepare_dataset.py. Real audio, but recorded far away and often
-         reverberant, so it is a weaker match for a cracker lit three metres
-         from the mic.
-      c. ``data/synthetic/firecracker/`` -- the synthetic fallback from
-         generate_synthetic_data.py, so the pipeline is always runnable.
-3. Assigns a deterministic, source-disjoint 70/15/15 split by clip id and
-   writes ``data/processed_demo/metadata.csv``, validated against the demo
-   taxonomy with the same contract the production manifest must pass.
-
-Why the production head must not get this data: see model_profiles.py.
 """
 
 import csv
@@ -44,18 +19,16 @@ from model_profiles import DEMO_PROFILE, REAL_PROFILE
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_FIRECRACKER_DIR = os.path.join(BASE_DIR, "data", "raw", "firecrackers")
 SYNTHETIC_FIRECRACKER_DIR = os.path.join(BASE_DIR, "data", "synthetic", "firecracker")
-ESC50_EXTRACT_DIR = os.path.join(BASE_DIR, "esc50_temp_dir")
+ESC50_EXTRACT_DIR = os.path.join(BASE_DIR, "data")
 DEMO_DIR = DEMO_PROFILE.dataset_dir
 DEMO_FIRECRACKER_DIR = os.path.join(DEMO_DIR, "firecracker")
 
 AUDIO_EXTENSIONS = (".wav", ".mp3", ".ogg", ".flac", ".m4a", ".aac", ".wma")
-MIN_CLIP_SECONDS = 4.5   # pass 2 verifies a 5s window; shorter clips get zero-padded
+MIN_CLIP_SECONDS = 4.5
 TARGET_SR = 16000
 
 
 def _assign_split(clip_id):
-    """Deterministic 70/15/15 by clip id -- same scheme as prepare_dataset.py,
-    so a clip never lands in two different splits across runs."""
     bucket = int(hashlib.sha256(clip_id.encode("utf-8")).hexdigest(), 16) % 100
     if bucket < 70:
         return "train"
@@ -66,19 +39,20 @@ def _assign_split(clip_id):
 
 def _load_mono_16k(path):
     try:
-        audio, sr = librosa.load(path, sr=TARGET_SR, mono=True)
-        return audio
+        audio, sr = sf.read(path, dtype="float32")
+        if audio.ndim > 1:
+            audio = np.mean(audio, axis=1)
+        if sr != TARGET_SR:
+            import scipy.signal
+            num_samples = int(len(audio) * TARGET_SR / sr)
+            audio = scipy.signal.resample(audio, num_samples)
+        return audio.astype(np.float32)
     except Exception as error:
         print("  skipped {} ({})".format(os.path.basename(path), error))
         return None
 
 
 def _write_clip(audio, target_path):
-    """Writes a >=4.5s clip. Long recordings are split into consecutive 5s
-    windows so one 40-second Diwali recording becomes eight usable examples;
-    short ones are tiled up to length rather than zero-padded, because a
-    trailing block of digital silence teaches the head that silence is part
-    of the class."""
     written = []
     window = int(5.0 * TARGET_SR)
     if len(audio) < int(MIN_CLIP_SECONDS * TARGET_SR):
@@ -93,7 +67,7 @@ def _write_clip(audio, target_path):
             break
         peak = float(np.max(np.abs(chunk))) if len(chunk) else 0.0
         if peak < 1e-4:
-            continue  # a silent window is not a firecracker example
+            continue
         chunk = chunk / peak * 0.9
         out_path = target_path if total_windows == 1 else "{}_w{:02d}{}".format(stem, index, ext)
         sf.write(out_path, chunk, TARGET_SR)
@@ -102,7 +76,6 @@ def _write_clip(audio, target_path):
 
 
 def _collect_source_files():
-    """Returns (files, source_dataset_label) using the best source available."""
     real_files = []
     if os.path.isdir(RAW_FIRECRACKER_DIR):
         for root, _dirs, files in os.walk(RAW_FIRECRACKER_DIR):
@@ -125,6 +98,10 @@ def _collect_source_files():
         if fireworks:
             return sorted(fireworks), "esc50_fireworks"
 
+    processed_fc = sorted(glob.glob(os.path.join(BASE_DIR, "data", "processed", "firecracker", "*.wav")))
+    if processed_fc:
+        return processed_fc, "real_firecrackers_processed"
+
     synthetic = sorted(glob.glob(os.path.join(SYNTHETIC_FIRECRACKER_DIR, "*.wav")))
     return synthetic, "synthetic_firecracker"
 
@@ -136,19 +113,9 @@ def build_firecracker_class():
 
     files, source_dataset = _collect_source_files()
     if not files:
-        raise RuntimeError(
-            "No firecracker audio found. Drop recordings into {} or run "
-            "`python generate_synthetic_data.py --firecracker-only` first.".format(
-                RAW_FIRECRACKER_DIR
-            )
-        )
+        raise RuntimeError("No firecracker audio found.")
 
     print("Firecracker source: {} ({} files)".format(source_dataset, len(files)))
-    if source_dataset == "synthetic_firecracker":
-        print("  NOTE: synthetic fallback in use. The demo head will work, but for a "
-              "convincing on-stage demo record real crackers into "
-              + RAW_FIRECRACKER_DIR)
-
     records = []
     for source_path in files:
         audio = _load_mono_16k(source_path)
@@ -161,10 +128,6 @@ def build_firecracker_class():
                 "filepath": os.path.abspath(written_path),
                 "label": "firecracker",
                 "source_dataset": source_dataset,
-                # Split by the *source recording*, not the derived window:
-                # two 5-second windows cut from the same recording are near
-                # duplicates, and letting them straddle train/test would
-                # inflate the demo head's reported accuracy.
                 "source_clip_id": clip_id,
                 "split": _assign_split(clip_id),
             })
@@ -183,32 +146,40 @@ def load_production_records():
         return list(csv.DictReader(f))
 
 
-def build():
-    os.makedirs(DEMO_DIR, exist_ok=True)
-    records = load_production_records()
-    print("Reusing {} production records (no audio duplicated).".format(len(records)))
-    records = records + build_firecracker_class()
+def build_demo_manifest():
+    print("Building demo-profile dataset ({}) ...".format(DEMO_PROFILE.name))
+    production_records = load_production_records()
+    firecracker_records = build_firecracker_class()
 
-    out_csv = DEMO_PROFILE.manifest_path
-    with open(out_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f, fieldnames=["filepath", "label", "source_dataset", "source_clip_id", "split"]
-        )
+    all_records = production_records + firecracker_records
+    manifest_path = DEMO_PROFILE.manifest_path
+    os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+
+    fieldnames = ["filepath", "label", "source_dataset", "source_clip_id", "split"]
+    with open(manifest_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(records)
+        for row in all_records:
+            writer.writerow({k: row[k] for k in fieldnames})
 
-    result = validate_manifest(out_csv, target_classes=set(DEMO_PROFILE.class_mapping))
+    print("Wrote demo manifest: {} ({} total rows)".format(
+        manifest_path, len(all_records)))
+
+    result = validate_manifest(
+        manifest_path,
+        target_classes=set(DEMO_PROFILE.class_mapping),
+        
+    )
     if not result["valid"]:
-        print("\nDEMO MANIFEST VALIDATION FAILED:")
+        print("DEMO MANIFEST VALIDATION FAILED:")
         for blocker in result["blockers"]:
-            print("  BLOCKER: {}".format(blocker))
-        raise RuntimeError("Demo manifest failed validation; refusing to hand it to training.")
+            print("  BLOCKER:", blocker)
+        raise RuntimeError("Demo manifest failed validation.")
 
-    print("\nDemo manifest written to {}".format(out_csv))
-    print("Class counts: {}".format(result["class_counts"]))
-    print("Split counts: {}".format(result["split_counts"]))
-    print("\nNext: python train_yamnet.py --profile demo")
+    print("Demo manifest validated cleanly against demo taxonomy ({} classes).".format(
+        DEMO_PROFILE.num_classes))
+    print("Demo split counts:", result["split_counts"])
 
 
 if __name__ == "__main__":
-    build()
+    build_demo_manifest()
